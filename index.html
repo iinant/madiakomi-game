@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#012D6E">
+<title>Медиакоми — Угадай цену квартиры</title>
+<style>
+  :root{
+    --hse-blue:#012D6E;
+    --hse-blue-dark:#012052;
+    --hse-blue-light:#1B4A94;
+    --accent:#F5C518;
+    --bg:#F2F4F8;
+    --card:#FFFFFF;
+    --text:#1A1A1A;
+    --muted:#6B7280;
+    --good:#0E8A4C;
+    --bad:#C62828;
+    --radius:16px;
+    --shadow:0 4px 16px rgba(1,45,110,.10);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);color:var(--text);
+    display:flex;justify-content:center;
+  }
+  #app{
+    width:100%;max-width:480px;min-height:100%;
+    display:flex;flex-direction:column;background:var(--bg);
+    box-shadow:0 0 40px rgba(0,0,0,.08);
+  }
+  .screen{display:none;flex:1;flex-direction:column}
+  .screen.active{display:flex}
+
+  /* ---------- Header ---------- */
+  header{
+    background:var(--hse-blue);color:#fff;
+    padding:14px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0;
+  }
+  .logo{
+    width:34px;height:34px;border-radius:8px;background:var(--accent);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:15px;color:var(--hse-blue);flex-shrink:0;
+  }
+  header .brand{font-size:19px;font-weight:700;letter-spacing:.3px}
+  header .brand span{font-weight:400;opacity:.85;font-size:13px;display:block;margin-top:1px}
+
+  main{flex:1;padding:16px 16px 24px;display:flex;flex-direction:column}
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    display:block;width:100%;border:none;border-radius:14px;cursor:pointer;
+    font-size:17px;font-weight:700;font-family:inherit;
+    padding:16px 20px;text-align:center;transition:transform .1s,opacity .15s;
+  }
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:var(--hse-blue);color:#fff}
+  .btn-accent{background:var(--accent);color:var(--hse-blue)}
+  .btn-outline{background:transparent;color:var(--hse-blue);border:2px solid var(--hse-blue)}
+  .btn[disabled]{opacity:.45;pointer-events:none}
+
+  /* ---------- Start screen ---------- */
+  #screen-start main{justify-content:center}
+  .hero-title{font-size:34px;line-height:1.15;font-weight:800;color:var(--hse-blue);margin:8px 0 4px}
+  .hero-sub{font-size:16px;color:var(--muted);margin-bottom:24px}
+  .rules{
+    background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:20px;margin-bottom:16px;
+  }
+  .rules h3{font-size:15px;color:var(--hse-blue);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
+  .rule-row{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px;font-size:14.5px;line-height:1.45;color:#333}
+  .rule-row:last-child{margin-bottom:0}
+  .rule-num{
+    width:24px;height:24px;border-radius:50%;background:var(--hse-blue);color:#fff;
+    font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .score-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:4px}
+  .score-table td{padding:7px 4px;border-bottom:1px solid #ECEFF3}
+  .score-table tr:last-child td{border-bottom:none}
+  .score-table td:last-child{text-align:right;font-weight:700;color:var(--hse-blue);white-space:nowrap}
+
+  /* ---------- Game screen ---------- */
+  .progress-wrap{padding:12px 0 4px}
+  .progress-label{display:flex;justify-content:space-between;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px}
+  .progress-label b{color:var(--hse-blue)}
+  .progress-bar{height:8px;background:#DDE3EC;border-radius:99px;overflow:hidden}
+  .progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--hse-blue),var(--hse-blue-light));border-radius:99px;transition:width .35s ease}
+
+  .lot-card{
+    background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+    margin-top:12px;overflow:hidden;flex:1;display:flex;flex-direction:column;
+  }
+  .lot-head{padding:14px 16px 0}
+  .lot-desc{font-size:16.5px;font-weight:700;line-height:1.3}
+  .lot-street{font-size:13.5px;color:var(--muted);margin-top:3px}
+
+  /* Gallery */
+  .gallery{position:relative;margin-top:12px;background:#E8EBF0}
+  .gallery-track{
+    display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+  }
+  .gallery-track::-webkit-scrollbar{display:none}
+  .gallery-track img{
+    flex:0 0 100%;width:100%;aspect-ratio:4/3;object-fit:cover;
+    scroll-snap-align:center;scroll-snap-stop:always;background:#E8EBF0;
+  }
+  .gallery-counter{
+    position:absolute;top:10px;right:10px;background:rgba(1,45,110,.85);color:#fff;
+    font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;
+  }
+  .gallery-dots{
+    display:flex;justify-content:center;gap:6px;padding:10px 0 2px;
+  }
+  .gallery-dots i{width:7px;height:7px;border-radius:50%;background:#C4CBD6;transition:background .2s}
+  .gallery-dots i.on{background:var(--hse-blue)}
+
+  /* Bid area */
+  .bid{padding:12px 16px 16px;margin-top:auto}
+  .bid-label{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:2px}
+  .bid-value{font-size:28px;font-weight:800;color:var(--hse-blue);margin-bottom:10px;font-variant-numeric:tabular-nums}
+  input[type=range]{
+    width:100%;height:40px;appearance:none;-webkit-appearance:none;background:transparent;cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:10px;border-radius:99px;
+    background:linear-gradient(90deg,var(--hse-blue) var(--fill,50%),#DDE3EC var(--fill,50%));
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:30px;height:30px;border-radius:50%;
+    background:#fff;border:4px solid var(--hse-blue);box-shadow:0 2px 8px rgba(1,45,110,.35);
+    margin-top:-10px;
+  }
+  input[type=range]::-moz-range-track{height:10px;border-radius:99px;background:#DDE3EC}
+  input[type=range]::-moz-range-progress{height:10px;border-radius:99px;background:var(--hse-blue)}
+  input[type=range]::-moz-range-thumb{
+    width:26px;height:26px;border-radius:50%;background:#fff;border:4px solid var(--hse-blue);
+  }
+  .bid-scale{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:2px}
+
+  /* Reveal */
+  .reveal{
+    border-top:2px dashed #DDE3EC;padding:14px 16px 16px;display:none;animation:slideup .3s ease;
+  }
+  .reveal.show{display:block}
+  @keyframes slideup{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .reveal-grid{display:flex;gap:10px;margin-bottom:12px}
+  .reveal-box{flex:1;border-radius:12px;padding:10px 12px;background:#F2F4F8}
+  .reveal-box .t{font-size:11.5px;color:var(--muted);font-weight:600;margin-bottom:2px}
+  .reveal-box .v{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
+  .diff-row{display:flex;justify-content:space-between;align-items:center;font-size:14px;margin-bottom:4px}
+  .diff-row .v{font-weight:800;font-variant-numeric:tabular-nums}
+  .diff-over{color:var(--bad)} .diff-under{color:var(--hse-blue-light)}
+  .points-badge{
+    display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:var(--hse-blue);
+    font-weight:800;font-size:14px;border-radius:99px;padding:6px 14px;margin:8px 0;
+  }
+  .reveal-link{
+    display:inline-flex;align-items:center;gap:5px;font-size:13.5px;font-weight:700;
+    color:var(--hse-blue);text-decoration:none;border-bottom:1.5px solid var(--hse-blue);padding-bottom:1px;
+  }
+
+  /* ---------- Result screen ---------- */
+  .result-hero{
+    background:linear-gradient(160deg,var(--hse-blue),var(--hse-blue-light));
+    border-radius:var(--radius);color:#fff;padding:26px 20px;text-align:center;
+    box-shadow:var(--shadow);
+  }
+  .result-emoji{font-size:46px}
+  .result-persona{font-size:24px;font-weight:800;margin:8px 0 4px}
+  .result-caption{font-size:14px;opacity:.9;line-height:1.45}
+  .result-score{
+    display:flex;justify-content:center;gap:26px;margin-top:18px;
+  }
+  .result-score .cell .n{font-size:22px;font-weight:800;color:var(--accent);white-space:nowrap}
+  .result-score .cell .l{font-size:11.5px;opacity:.85;margin-top:2px}
+  .summary-card{
+    background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:16px;margin-top:14px;
+  }
+  .summary-card h3{font-size:14px;color:var(--hse-blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+  .recap-row{
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
+    font-size:13px;padding:8px 0;border-bottom:1px solid #ECEFF3;
+  }
+  .recap-row:last-child{border-bottom:none}
+  .recap-row .desc{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#333}
+  .recap-row .pts{font-weight:800;color:var(--hse-blue);white-space:nowrap}
+  .recap-row .pts.low{color:var(--bad)}
+  footer{padding:10px 20px 16px;text-align:center;font-size:11.5px;color:var(--muted)}
+  footer a{color:var(--hse-blue);font-weight:600;text-decoration:none}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">МК</div>
+    <div class="brand">Медиакоми<span>Угадай цену квартиры</span></div>
+  </header>
+
+  <!-- ============ СТАРТОВЫЙ ЭКРАН ============ -->
+  <section id="screen-start" class="screen active">
+    <main>
+      <h1 class="hero-title">Угадай цену квартиры в Коми</h1>
+      <p class="hero-sub">Игра по реальным объявлениям республики Коми</p>
+
+      <div class="rules">
+        <h3>Правила</h3>
+        <div class="rule-row"><div class="rule-num">1</div><div>Вам покажут <b>10 квартир</b> из реальных объявлений — по несколько фотографий каждая.</div></div>
+        <div class="rule-row"><div class="rule-num">2</div><div>Передвиньте бегунок и назначьте свою цену, затем нажмите «Оценить».</div></div>
+        <div class="rule-row"><div class="rule-num">3</div><div>Увидите настоящую цену, разницу и ссылку на объявление.</div></div>
+        <div class="rule-row"><div class="rule-num">4</div><div>Чем точнее угадали — тем больше баллов. Максимум за раунд — 10, за игру — 100.</div></div>
+        <div class="rule-row"><div class="rule-num">5</div><div>В конце узнаете, кто вы: жадный студент, адекватный квартирант или транжира.</div></div>
+
+        <h3 style="margin-top:16px">Баллы за точность</h3>
+        <table class="score-table">
+          <tr><td>Точно (ошибка до 5%)</td><td>10 баллов</td></tr>
+          <tr><td>Близко (до 10%)</td><td>8 баллов</td></tr>
+          <tr><td>Порядок (до 20%)</td><td>6 баллов</td></tr>
+          <tr><td>Мимо (до 30%)</td><td>4 балла</td></tr>
+          <tr><td>Далеко (до 50%)</td><td>2 балла</td></tr>
+          <tr><td>Совсем не в цель</td><td>0 баллов</td></tr>
+        </table>
+      </div>
+
+      <button class="btn btn-accent" id="btn-start">Запуск игры</button>
+    </main>
+    <footer>Данные: реальные объявления Авито, республика Коми · <a href="https://www.hse.ru/" target="_blank" rel="noopener">Стиль — Вышка</a></footer>
+  </section>
+
+  <!-- ============ ЭКРАН ЛОТА ============ -->
+  <section id="screen-game" class="screen">
+    <main>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Раунд <b id="round-now">1</b> из 10</span><span>Баллы: <b id="score-now">0</b></span></div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      </div>
+
+      <div class="lot-card">
+        <div class="lot-head">
+          <div class="lot-desc" id="lot-desc"></div>
+          <div class="lot-street" id="lot-street"></div>
+        </div>
+
+        <div class="gallery">
+          <div class="gallery-track" id="gallery-track"></div>
+          <div class="gallery-counter" id="gallery-counter">1/1</div>
+        </div>
+        <div class="gallery-dots" id="gallery-dots"></div>
+
+        <div class="bid">
+          <div class="bid-label">Ваша оценка стоимости</div>
+          <div class="bid-value" id="bid-value">500 000 ₽</div>
+          <input type="range" id="bid-slider" min="50000" max="2000000" step="5000" value="500000" aria-label="Оценка цены">
+          <div class="bid-scale"><span>50 тыс.</span><span>2 млн</span></div>
+        </div>
+
+        <div class="reveal" id="reveal">
+          <div class="reveal-grid">
+            <div class="reveal-box"><div class="t">Ваша цена</div><div class="v" id="rv-user"></div></div>
+            <div class="reveal-box"><div class="t">Реальная цена</div><div class="v" id="rv-real"></div></div>
+          </div>
+          <div class="diff-row"><span>Разница</span><span class="v" id="rv-diff"></span></div>
+          <div class="diff-row"><span>Ошибка</span><span class="v" id="rv-err"></span></div>
+          <div class="points-badge" id="rv-points"></div>
+          <br>
+          <a class="reveal-link" id="rv-link" target="_blank" rel="noopener">Смотреть объявление →</a>
+        </div>
+      </div>
+
+      <div style="padding-top:12px">
+        <button class="btn btn-primary" id="btn-submit">Оценить</button>
+      </div>
+    </main>
+  </section>
+
+  <!-- ============ ИТОГОВЫЙ ЭКРАН ============ -->
+  <section id="screen-result" class="screen">
+    <main>
+      <div class="result-hero">
+        <div class="result-emoji" id="res-emoji">🧑‍🎓</div>
+        <div class="result-persona" id="res-persona"></div>
+        <div class="result-caption" id="res-caption"></div>
+        <div class="result-score">
+          <div class="cell"><div class="n" id="res-points"></div><div class="l">баллов из 100</div></div>
+          <div class="cell"><div class="n" id="res-avg"></div><div class="l">средняя ошибка</div></div>
+          <div class="cell"><div class="n" id="res-over"></div><div class="l">сумма переплаты</div></div>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <h3>Ваши раунды</h3>
+        <div id="recap"></div>
+      </div>
+
+      <div style="padding-top:14px">
+        <button class="btn btn-primary" id="btn-again">Играть снова</button>
+      </div>
+    </main>
+    <footer>Данные: реальные объявления Авито, республика Коми · <a href="https://www.hse.ru/" target="_blank" rel="noopener">Медиакоми</a></footer>
+  </section>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  'use strict';
+  const ROUNDS = 10;
+  const MIN = 50000, MAX = 2000000, STEP = 5000;
+  const fmt = n => n.toLocaleString('ru-RU') + ' ₽';
+
+  // --- баллы: чем ближе к реальной цене, тем больше ---
+  function calcPoints(err){ // err — относительная ошибка (0..∞)
+    if (err <= 0.05) return 10;
+    if (err <= 0.10) return 8;
+    if (err <= 0.20) return 6;
+    if (err <= 0.30) return 4;
+    if (err <= 0.50) return 2;
+    return 0;
+  }
+
+  // --- архетип по суммарному перекосу оценок ---
+  function pickPersona(biasRatio){ // сумма оценок / сумма реальных цен
+    if (biasRatio < 0.97) return {
+      t:'Жадный студент', e:'🧑‍🎓',
+      c:'Вы стабильно называли цены ниже реальных. Квартиры вам кажутся дешевле, чем они есть — возможно, вы просто студент и привыкли экономить!'
+    };
+    if (biasRatio > 1.03) return {
+      t:'Транжира', e:'💸',
+      c:'Ваши оценки в основном выше реальных цен. Рынок Коми вам не по карману — или вы слишком щедрый человек!'
+    };
+    return {
+      t:'Адекватный квартирант', e:'🏠',
+      c:'Ваши оценки почти совпали с реальными ценами. Вы отлично чувствуете рынок недвижимости Коми!'
+    };
+  }
+
+  // ---------- state ----------
+  let deck = [], round = 0, total = 0;
+  let results = []; // {desc, guess, real, diff, pts}
+  let revealed = false;
+
+  const $ = id => document.getElementById(id);
+  const screens = {start:$('screen-start'), game:$('screen-game'), result:$('screen-result')};
+  function show(name){
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[name].classList.add('active');
+    window.scrollTo(0,0);
+  }
+
+  // ---------- gallery ----------
+  let gTrack, gDots, gCounter;
+  function buildGallery(photos){
+    gTrack = $('gallery-track'); gDots = $('gallery-dots'); gCounter = $('gallery-counter');
+    gTrack.innerHTML = ''; gDots.innerHTML = '';
+    photos.forEach((src, i) => {
+      const img = new Image();
+      img.loading = 'lazy'; img.decoding = 'async'; img.alt = 'Фото квартиры ' + (i+1);
+      img.referrerPolicy = 'no-referrer';
+      img.src = src;
+      gTrack.appendChild(img);
+      const dot = document.createElement('i');
+      if (i === 0) dot.className = 'on';
+      gDots.appendChild(dot);
+    });
+    gCounter.textContent = '1/' + photos.length;
+    gTrack.scrollLeft = 0;
+    gTrack.addEventListener('scroll', onGalleryScroll, {passive:true});
+  }
+  function onGalleryScroll(){
+    const i = Math.round(gTrack.scrollLeft / gTrack.clientWidth);
+    [...gDots.children].forEach((d, k) => d.classList.toggle('on', k === i));
+    gCounter.textContent = (i+1) + '/' + gDots.children.length;
+  }
+
+  // ---------- slider ----------
+  const slider = $('bid-slider');
+  function syncSlider(){
+    const v = +slider.value;
+    $('bid-value').textContent = fmt(v);
+    const fill = ((v - MIN) / (MAX - MIN)) * 100;
+    slider.style.setProperty('--fill', fill + '%');
+  }
+  slider.addEventListener('input', syncSlider);
+
+  // ---------- game flow ----------
+  function startGame(){
+    const pool = window.GAME_DATA.slice();
+    // Фишер—Йетс
+    for (let i = pool.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    deck = pool.slice(0, ROUNDS);
+    round = 0; total = 0; results = [];
+    show('game');
+    loadRound();
+  }
+
+  function loadRound(){
+    revealed = false;
+    const lot = deck[round];
+    $('round-now').textContent = round + 1;
+    $('score-now').textContent = total;
+    $('progress-fill').style.width = (round / ROUNDS * 100) + '%';
+    $('lot-desc').textContent = lot.desc || 'Квартира в республике Коми';
+    $('lot-street').textContent = lot.street || '';
+    buildGallery(lot.photos);
+    slider.value = Math.round((MIN + MAX) / 2 / STEP) * STEP;
+    syncSlider();
+    $('reveal').classList.remove('show');
+    const btn = $('btn-submit');
+    btn.textContent = 'Оценить';
+    btn.disabled = false;
+  }
+
+  function submitGuess(){
+    if (!revealed){
+      revealed = true;
+      const lot = deck[round];
+      const guess = +slider.value;
+      const diff = guess - lot.price;
+      const err = Math.abs(diff) / lot.price;
+      const pts = calcPoints(err);
+      total += pts;
+      results.push({desc: lot.desc, guess, real: lot.price, diff, pts});
+
+      $('score-now').textContent = total;
+      $('progress-fill').style.width = ((round + 1) / ROUNDS * 100) + '%';
+      $('rv-user').textContent = fmt(guess);
+      $('rv-real').textContent = fmt(lot.price);
+      const d = $('rv-diff');
+      d.textContent = (diff > 0 ? '+' : diff < 0 ? '−' : '') + fmt(Math.abs(diff));
+      d.className = 'v ' + (diff > 0 ? 'diff-over' : diff < 0 ? 'diff-under' : '');
+      $('rv-err').textContent = (err * 100).toFixed(1).replace('.', ',') + '%';
+      $('rv-points').textContent = '+' + pts + ' ' + plural(pts, ['балл','балла','баллов']);
+      $('rv-link').href = lot.link;
+      $('reveal').classList.add('show');
+
+      const btn = $('btn-submit');
+      btn.textContent = (round + 1 < ROUNDS) ? 'Следующая квартира →' : 'Показать результат';
+      btn.scrollIntoView({behavior:'smooth', block:'nearest'});
+    } else {
+      round++;
+      if (round < ROUNDS) loadRound();
+      else showResult();
+    }
+  }
+
+  function plural(n, forms){
+    const n10 = n % 10, n100 = n % 100;
+    if (n10 === 1 && n100 !== 11) return forms[0];
+    if (n10 >= 2 && n10 <= 4 && (n100 < 10 || n100 >= 20)) return forms[1];
+    return forms[2];
+  }
+
+  function showResult(){
+    const sumGuess = results.reduce((s, r) => s + r.guess, 0);
+    const sumReal  = results.reduce((s, r) => s + r.real, 0);
+    const overpay  = sumGuess - sumReal;
+    const avgErr   = results.reduce((s, r) => s + Math.abs(r.diff) / r.real, 0) / results.length;
+    const p = pickPersona(sumGuess / sumReal);
+
+    $('res-emoji').textContent = p.e;
+    $('res-persona').textContent = p.t;
+    $('res-caption').textContent = p.c;
+    $('res-points').textContent = total;
+    $('res-avg').textContent = (avgErr * 100).toFixed(0) + '%';
+    const ov = $('res-over');
+    const compact = v => {
+      const a = Math.abs(v);
+      if (a >= 1e6) return (a / 1e6).toFixed(1).replace('.', ',').replace(',0', '') + ' млн ₽';
+      if (a >= 1e3) return Math.round(a / 1e3) + ' тыс. ₽';
+      return a.toLocaleString('ru-RU') + ' ₽';
+    };
+    if (overpay >= 0){
+      ov.textContent = '+' + compact(overpay);
+      ov.style.color = 'var(--accent)';
+      $('res-over').nextElementSibling.textContent = 'сумма переплаты';
+    } else {
+      ov.textContent = '−' + compact(overpay);
+      ov.style.color = '#fff';
+      $('res-over').nextElementSibling.textContent = 'сумма недоплаты';
+    }
+
+    const recap = $('recap');
+    recap.innerHTML = '';
+    results.forEach((r, i) => {
+      const row = document.createElement('div');
+      row.className = 'recap-row';
+      row.innerHTML =
+        '<span class="desc">' + (i+1) + '. ' + (r.desc || '') + '</span>' +
+        '<span class="pts' + (r.pts < 5 ? ' low' : '') + '">' + r.pts + ' б.</span>';
+      recap.appendChild(row);
+    });
+
+    show('result');
+  }
+
+  // ---------- events ----------
+  $('btn-start').addEventListener('click', startGame);
+  $('btn-again').addEventListener('click', startGame);
+  $('btn-submit').addEventListener('click', submitGuess);
+
+  syncSlider();
+})();
+</script>
+</body>
+</html>
